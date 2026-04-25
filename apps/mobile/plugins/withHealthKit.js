@@ -91,12 +91,21 @@ function withReactImportInBridgingHeader(config) {
         projectName,
         `${projectName}-Bridging-Header.h`,
       );
-      if (!fs.existsSync(headerPath)) {
-        throw new Error(`withHealthKit: bridging header missing at ${headerPath}`);
-      }
+      // On a fresh `expo prebuild --clean` Expo only emits the bridging
+      // header under certain Swift-detection conditions, and the dangerous
+      // mod can land before that step. If the file is absent, seed it with
+      // the standard Expo boilerplate so the React import below has
+      // something to append to.
+      const defaultHeader =
+        '//\n' +
+        "//  Use this file to import your target's public headers that you would like to expose to Swift.\n" +
+        '//\n';
       const importLine = '#import <React/RCTBridgeModule.h>';
-      const current = fs.readFileSync(headerPath, 'utf8');
+      const current = fs.existsSync(headerPath)
+        ? fs.readFileSync(headerPath, 'utf8')
+        : defaultHeader;
       if (!current.includes(importLine)) {
+        fs.mkdirSync(path.dirname(headerPath), { recursive: true });
         fs.writeFileSync(headerPath, `${current.trimEnd()}\n\n${importLine}\n`);
       }
       return cfg;
