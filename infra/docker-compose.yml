@@ -1,0 +1,23 @@
+name: kinetica
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: kinetica-postgres
+    environment:
+      POSTGRES_USER: kinetica
+      POSTGRES_PASSWORD: kinetica
+      POSTGRES_DB: kinetica
+    ports:
+      - "5432:5432"
+    volumes:
+      - kinetica-postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kinetica -d kinetica"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kinetica-postgres-data:
