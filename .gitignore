@@ -18,18 +18,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # Expo / React Native
+# `expo prebuild` regenerates apps/mobile/ios/ — treated as a build artifact.
 .expo/
 .expo-shared/
 dist/
 web-build/
-ios/Pods/
-ios/build/
-ios/DerivedData/
-ios/.xcode.env.local
-ios/*.xcworkspace/xcuserdata/
-ios/*.xcodeproj/xcuserdata/
-ios/*.xcodeproj/project.xcworkspace/xcuserdata/
-android/
+apps/mobile/ios/
+apps/mobile/android/
 
 # Python
 __pycache__/

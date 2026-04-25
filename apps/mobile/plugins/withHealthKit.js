@@ -64,15 +64,49 @@ function withRegisterBridgeOnXcode(config) {
       const target = `${groupPath}/${file}`;
       const isSource = file.endsWith('.m') || file.endsWith('.swift');
       if (isSource) {
-        project.addSourceFile(target, { target: project.getFirstTarget().uuid });
+        // Pass the group's uuid so xcode-node routes through addFile() rather
+        // than addPluginFile(), which would mis-resolve the path.
+        project.addSourceFile(
+          target,
+          { target: project.getFirstTarget().uuid },
+          group.uuid,
+        );
       }
     }
     return cfg;
   });
 }
 
+function withReactImportInBridgingHeader(config) {
+  return withDangerousMod(config, [
+    'ios',
+    async (cfg) => {
+      const platformRoot = cfg.modRequest.platformProjectRoot;
+      const projectName = cfg.modRequest.projectName;
+      if (!projectName) {
+        throw new Error('withHealthKit: cfg.modRequest.projectName is missing');
+      }
+      const headerPath = path.join(
+        platformRoot,
+        projectName,
+        `${projectName}-Bridging-Header.h`,
+      );
+      if (!fs.existsSync(headerPath)) {
+        throw new Error(`withHealthKit: bridging header missing at ${headerPath}`);
+      }
+      const importLine = '#import <React/RCTBridgeModule.h>';
+      const current = fs.readFileSync(headerPath, 'utf8');
+      if (!current.includes(importLine)) {
+        fs.writeFileSync(headerPath, `${current.trimEnd()}\n\n${importLine}\n`);
+      }
+      return cfg;
+    },
+  ]);
+}
+
 module.exports = function withHealthKit(config) {
   config = withCopyBridgeSources(config);
+  config = withReactImportInBridgingHeader(config);
   config = withRegisterBridgeOnXcode(config);
   return config;
 };

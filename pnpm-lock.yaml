@@ -10,6 +10,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@nozbe/simdjson':
+        specifier: ^3.9.4
+        version: 3.9.4
       '@nozbe/watermelondb':
         specifier: ^0.27.1
         version: 0.27.1
@@ -47,6 +50,9 @@ importers:
         specifier: ^4.4.2
         version: 4.4.2
     devDependencies:
+      '@expo/config-plugins':
+        specifier: ^9.0.0
+        version: 9.0.17
       '@types/react':
         specifier: ~18.3.12
         version: 18.3.28
@@ -847,7 +853,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
@@ -1027,6 +1033,9 @@ packages:
 
   '@nozbe/simdjson@3.1.0-wmelon1':
     resolution: {integrity: sha512-PQaHHQyvASrcrfzqkZ4ona43m0UjN81NuTWt6rJkOUePGDjxc8MNp2Q7jcod1CIdTsXJ13wRWeFbquwNfhpIQQ==}
+
+  '@nozbe/simdjson@3.9.4':
+    resolution: {integrity: sha512-/3oCP8GBpdyeiBMEnuI6S0yl0yekD6Qxfed67hZqU1GIVn3o/vZgE8qANm69THfw7JgHLS9zjx56F/dO3q+koA==}
 
   '@nozbe/sqlite@3.40.1':
     resolution: {integrity: sha512-uKJOW4sQi3neCmgKhqLr0IJKlb2y5q2p05U5CEDJrCxSyD2uVYvSdh7IMrPjF4sWtzc/Lnk462M4vde7Dn5NSw==}
@@ -5587,6 +5596,8 @@ snapshots:
   '@nozbe/lokijs@1.5.12-wmelon6': {}
 
   '@nozbe/simdjson@3.1.0-wmelon1': {}
+
+  '@nozbe/simdjson@3.9.4': {}
 
   '@nozbe/sqlite@3.40.1': {}
 
