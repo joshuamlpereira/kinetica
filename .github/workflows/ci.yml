@@ -153,7 +153,6 @@ jobs:
         run: cd ios && pod install --repo-update
       - name: Xcode build (simulator, no signing)
         run: |
-          set -o pipefail
           xcodebuild \
             -workspace ios/Kinetica.xcworkspace \
             -scheme Kinetica \
@@ -161,4 +160,4 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            build | xcpretty
+            build
