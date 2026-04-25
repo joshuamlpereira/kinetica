@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Kinetica",
+    "slug": "kinetica",
+    "scheme": "kinetica",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "dev.joshuapereira.kinetica",
+      "deploymentTarget": "16.1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Kinetica reads your sleep, step count, and active energy from HealthKit to compute readiness and training load. Your data is encrypted on your device before any sync."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.background-delivery": true
+      }
+    },
+    "plugins": [
+      "./plugins/withHealthKit.js"
+    ]
+  }
+}
