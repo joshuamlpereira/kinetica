@@ -140,10 +140,6 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: false
       - name: Install JS deps
         working-directory: .
         run: pnpm install --frozen-lockfile
