@@ -59,7 +59,7 @@ jobs:
         run: uv run pytest -q
 
   schema-drift:
-    name: schema drift (alembic check)
+    name: schema drift (models vs DB, models vs docs)
     runs-on: ubuntu-latest
     needs: backend
     services:
@@ -99,6 +99,8 @@ jobs:
         run: uv run alembic upgrade head
       - name: Detect drift between models and DB
         run: uv run alembic check
+      - name: Detect drift between models and docs/SCHEMA.sql
+        run: uv run python scripts/render_schema.py --check
 
   mobile:
     name: mobile (typecheck, lint)

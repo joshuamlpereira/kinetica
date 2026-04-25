@@ -33,3 +33,13 @@
 - Phase 4: HealthKit ingestion + Fuel.
 - Phase 5: Recovery Engine + Dashboard.
 - Phase 6: Sync, polish, hardening.
+
+## Open questions
+
+- **`health_provider_links` table** (introduced in Phase 1, untouched in
+  Phase 2). With per-device Ed25519 keys now living in `user_devices`,
+  the original use case for a separate "this user has linked HealthKit"
+  row is less clear — granted_scopes / last_sync_at could potentially
+  collapse into either `user_devices` or a new sync-state table. Revisit
+  when Phase 4 (HealthKit ingestion) lands and the actual access pattern
+  is concrete; do not refactor an unused table now.
