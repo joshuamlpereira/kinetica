@@ -27,6 +27,7 @@
     "node_modules",
     "ios",
     "android",
-    "dist"
+    "dist",
+    "src/**/*.test.ts"
   ]
 }
