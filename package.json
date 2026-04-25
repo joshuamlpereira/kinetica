@@ -1,0 +1,16 @@
+{
+  "name": "kinetica",
+  "version": "0.0.0",
+  "private": true,
+  "description": "iOS-first human performance and fitness tracking app.",
+  "engines": {
+    "node": ">=20.10.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test"
+  }
+}
