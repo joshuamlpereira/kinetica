@@ -10,6 +10,7 @@
     "skipLibCheck": true,
     "jsx": "react-native",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "baseUrl": ".",
@@ -28,6 +29,7 @@
     "ios",
     "android",
     "dist",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "src/**/*.test-setup.ts"
   ]
 }

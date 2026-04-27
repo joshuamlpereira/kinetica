@@ -53,6 +53,9 @@ importers:
       '@expo/config-plugins':
         specifier: ^9.0.0
         version: 9.0.17
+      '@types/libsodium-wrappers-sumo':
+        specifier: ^0.8.2
+        version: 0.8.2
       '@types/react':
         specifier: ~18.3.12
         version: 18.3.28
@@ -74,6 +77,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^5.0.0
         version: 5.2.0(eslint@9.39.4)
+      libsodium-wrappers-sumo:
+        specifier: ^0.8.4
+        version: 0.8.4
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
@@ -1219,6 +1225,10 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/libsodium-wrappers-sumo@0.8.2':
+    resolution: {integrity: sha512-uFOBpg/r21hExVlh2ty8YpDfSR+Yy3Jn8XS4+SSjitbhTxdYq+pBz/49XRxyUFe8SzqujHf/Wu0/O4d+FUtNfQ==}
+    deprecated: This is a stub types definition. libsodium-wrappers-sumo provides its own type definitions, so you do not need this installed.
 
   '@types/node-forge@1.3.14':
     resolution: {integrity: sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw==}
@@ -5956,6 +5966,10 @@ snapshots:
       '@types/istanbul-lib-report': 3.0.3
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/libsodium-wrappers-sumo@0.8.2':
+    dependencies:
+      libsodium-wrappers-sumo: 0.8.4
 
   '@types/node-forge@1.3.14':
     dependencies:
