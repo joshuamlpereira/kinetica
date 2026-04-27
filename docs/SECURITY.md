@@ -192,12 +192,17 @@ file change first.
   `crypto_box_seal` to the user's X25519 public key. The sender is
   anonymous (ephemeral keypair). The server cannot decrypt; only the
   holder of the user's X25519 private key can.
-- **Password KDF**: Argon2id. **Parameters MUST be set in code as named
-  constants and pinned by benchmarks committed alongside them** —
-  current proposal `t=3, m=64MiB, p=4` targeting ~500ms on a 2020-era
-  iPhone. The benchmark output for both client and server (verification
-  side, informational) lands in `services/api/tests/` and
-  `apps/mobile/src/db/` before the constants are merged.
+- **Password KDF**: Argon2id via libsodium's `crypto_pwhash`. **Parameters
+  MUST be set in code as named constants and pinned by benchmarks
+  committed alongside them** — current proposal `t=3, m=64MiB`
+  targeting ~500ms on a 2020-era iPhone. *libsodium's `crypto_pwhash`
+  does not expose Argon2's parallelism parameter (it is fixed at `p=1`
+  internally), so the original proposal of `p=4` is moot in practice
+  and removed here.* The Argon2id derivation is purely client-side —
+  the server never sees a passphrase — so there is no server-side
+  benchmark to commit; the client benchmark lives at
+  `apps/mobile/src/crypto/benchmark.ts` and must be run on a real iPhone
+  before constants are pinned.
 - **Per-user password salt**: 16 random bytes per user, stored in
   `users.password_salt` (new column). Generated client-side at
   registration; uploaded once, never rotated except on passphrase
@@ -612,11 +617,12 @@ Each decision below is locked. Code lands behind these.
    OPAQUE-vs-SRP question is moot.
 
 3. **Argon2id parameters**: target ~500ms on a 2020-era iPhone.
-   Proposal `t=3, m=64MiB, p=4`. **Final values pinned by benchmarks
-   committed alongside the constants** in
-   `apps/mobile/src/db/argon2_bench.test.ts` and
-   `services/api/tests/test_argon2_params.py` (the server side is
-   informational — the server does not derive KEKs).
+   Proposal `t=3, m=64MiB` (parallelism is fixed at 1 by libsodium's
+   `crypto_pwhash`; see §5.2). **Final values pinned by an iPhone
+   benchmark before the auth flow ships.** Provisional constants
+   live in `apps/mobile/src/crypto/argon2_params.ts`; the benchmark
+   harness is at `apps/mobile/src/crypto/benchmark.ts`. Argon2id is
+   purely client-side — there is no server-side benchmark.
 
 4. **Refresh-family revocation surface**: email **and** silent re-auth
    on next foreground (§5.3.6). Neutral UX language ("Your session
