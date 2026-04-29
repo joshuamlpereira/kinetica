@@ -16,6 +16,7 @@ here. If you can't justify it, write the code yourself.
 - `zxcvbn` — passphrase strength meter (Phase 2).
 - `typescript`, `@types/react`, `@types/react-native` — TS toolchain.
 - `eslint`, `@typescript-eslint/*`, `eslint-plugin-react`, `eslint-plugin-react-hooks` — linting.
+- `libsodium-wrappers-sumo` (devDep) — Node-runnable libsodium with `crypto_pwhash` for the crypto test suite. The mobile bundle uses `react-native-libsodium`; tests use this. Bundled types ship with the package (>= 0.8.4), so no `@types/` companion is needed.
 
 ## Backend (`services/api`)
 

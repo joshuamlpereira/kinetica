@@ -2,9 +2,10 @@
 .DS_Store
 Thumbs.db
 
-# Editors
+# Editors / agents
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
