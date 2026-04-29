@@ -229,8 +229,11 @@ device. The passphrase is used purely locally to unwrap the master key.
 5. Client posts to `POST /auth/register`:
    ```
    {
-     email,                      # used once for the welcome email; not stored
-     email_hash,                 # HMAC(pepper, lowercased(email))
+     email,                      # the server hashes this with the pepper
+                                 # (which is server-only) and persists only
+                                 # the resulting email_hash; the address
+                                 # itself is used once for the welcome email
+                                 # and otherwise not stored
      password_salt,              # 16 bytes
      encryption_pubkey,          # X25519, 32 bytes
      wrapped_master_key,         # nonce || ciphertext
@@ -239,9 +242,10 @@ device. The passphrase is used purely locally to unwrap the master key.
      bootstrap_signature         # device_pubkey signs the SHA-256 of the rest
    }
    ```
-6. Server validates `bootstrap_signature` against `device_pubkey`,
-   inserts a `users` row and a `user_devices` row, returns the initial
-   token pair (access + refresh, both DPoP-bound to `device_pubkey`).
+6. Server computes `email_hash = HMAC(primary_pepper, email.lower())`,
+   validates `bootstrap_signature` against `device_pubkey`, inserts a
+   `users` row and a `user_devices` row, returns the initial token pair
+   (access + refresh, both DPoP-bound to `device_pubkey`).
 7. iCloud Keychain (escrow mode) backs up the master key + X25519
    private key on the device. In zero-knowledge mode this step is
    skipped — the only recovery path is the wrapped master key on the
@@ -257,12 +261,13 @@ without the passphrase).
 The phone already holds its Ed25519 private key (Secure Enclave) and
 its `device_pubkey` is already in `user_devices`.
 
-1. `POST /auth/challenge { email_hash, device_pubkey }` — server
-   returns `{ nonce, expires_at }`. The challenge is single-use.
+1. `POST /auth/challenge { email, device_pubkey }` — server hashes
+   `email` under the primary pepper to find the user, returns
+   `{ nonce, expires_at }`. The challenge is single-use.
 2. Client signs `nonce || expires_at || device_pubkey` with its
    Ed25519 private key.
-3. `POST /auth/login { email_hash, device_pubkey, nonce, signature }`
-   — server verifies, issues access + refresh.
+3. `POST /auth/login { email, device_pubkey, nonce, signature }` —
+   server verifies, issues access + refresh.
 4. Locally: prompt for passphrase → derive KEK → fetch `wrapped_master_key`
    from `users` table via authenticated request → unwrap → master key
    in memory.
@@ -311,12 +316,13 @@ Goal: get a working session on a fresh device when the user has lost
 all their existing devices. This is the only path that does not
 require possession of an existing trusted device.
 
-1. Device B: `POST /auth/recover { email_hash }`.
+1. Device B: `POST /auth/recover { email }`. Server hashes `email`
+   under the primary pepper to find the user.
 2. Server generates a one-time recovery token, emails it to the
-   address (resolved by querying which user has that `email_hash` —
-   the email itself is not stored, but the original email arrived
-   in the registration payload and was sent in the welcome email; see
-   §10.7 for the residual risk).
+   address (which arrived in the registration payload and is also
+   what we just received on this request; the address itself is
+   never persisted — we have it only because the client just sent
+   it; see §10.7 for the residual risk).
 
    **Note on email plaintext:** the server has the email at
    registration time and at every recovery request. It uses the email
@@ -324,7 +330,7 @@ require possession of an existing trusted device.
    provider sees the address regardless.
 3. User receives the email and enters the recovery token on device B.
 4. Device B generates an Ed25519 keypair and posts
-   `POST /auth/recover/redeem { email_hash, recovery_token,
+   `POST /auth/recover/redeem { email, recovery_token,
    device_pubkey, device_name, redeem_signature }` where
    `redeem_signature` is over the token and pubkey.
 5. Server validates the recovery token (single-use, 15-minute TTL),
