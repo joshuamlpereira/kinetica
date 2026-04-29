@@ -83,6 +83,10 @@ export interface SodiumApi {
   crypto_aead_xchacha20poly1305_ietf_KEYBYTES: number;
   crypto_aead_xchacha20poly1305_ietf_NPUBBYTES: number;
   crypto_aead_xchacha20poly1305_ietf_ABYTES: number;
+
+  // ---- Hash --------------------------------------------------------------
+  crypto_hash_sha256(message: Uint8Array | string): Uint8Array;
+  crypto_hash_sha256_BYTES: number;
 }
 
 let _instance: SodiumApi | null = null;

@@ -11,7 +11,7 @@
 // `setupSodiumForTests` is intentionally NOT re-exported here — it's
 // test-only and lives in `./_sodium.test-setup.ts` to keep the dynamic
 // import out of the production bundle.
-export { setSodium, type Keypair, type SodiumApi } from './_sodium.ts';
+export { setSodium, sodium, type Keypair, type SodiumApi } from './_sodium.ts';
 export { randomBytes } from './random.ts';
 export {
   aeadDecrypt,
