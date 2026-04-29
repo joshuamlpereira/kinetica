@@ -50,6 +50,9 @@ importers:
         specifier: ^4.4.2
         version: 4.4.2
     devDependencies:
+      '@babel/runtime':
+        specifier: ^7.29.2
+        version: 7.29.2
       '@expo/config-plugins':
         specifier: ^9.0.0
         version: 9.0.17

@@ -1,6 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 
+import {
+  ARGON2ID_MEM_LIMIT,
+  ARGON2ID_OPS_LIMIT,
+  initAppCrypto,
+  runArgon2idBenchmark,
+  type BenchmarkResult,
+} from '@/crypto';
 import { HealthKitBridge, HealthKitTypeIdentifier } from '@/health/bridge';
 import { theme } from '@/theme';
 
@@ -16,10 +23,34 @@ type AuthState =
   | { kind: 'granted'; types: HealthKitTypeIdentifier[] }
   | { kind: 'error'; message: string };
 
+type CryptoBootState =
+  | { kind: 'booting' }
+  | { kind: 'ready' }
+  | { kind: 'error'; message: string };
+
+type BenchState =
+  | { kind: 'idle' }
+  | { kind: 'running' }
+  | { kind: 'done'; result: BenchmarkResult }
+  | { kind: 'error'; message: string };
+
 export default function App(): JSX.Element {
   const [auth, setAuth] = useState<AuthState>({ kind: 'idle' });
+  const [boot, setBoot] = useState<CryptoBootState>({ kind: 'booting' });
+  const [bench, setBench] = useState<BenchState>({ kind: 'idle' });
 
-  const onPress = async (): Promise<void> => {
+  useEffect(() => {
+    void (async () => {
+      try {
+        await initAppCrypto();
+        setBoot({ kind: 'ready' });
+      } catch (e) {
+        setBoot({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
+      }
+    })();
+  }, []);
+
+  const onAuthHealthKit = async (): Promise<void> => {
     setAuth({ kind: 'pending' });
     try {
       const result = await HealthKitBridge.requestAuthorization(PHASE_1_TYPES);
@@ -29,21 +60,54 @@ export default function App(): JSX.Element {
     }
   };
 
+  const onRunBenchmark = async (): Promise<void> => {
+    setBench({ kind: 'running' });
+    try {
+      const result = await runArgon2idBenchmark(
+        5,
+        { opsLimit: ARGON2ID_OPS_LIMIT, memLimit: ARGON2ID_MEM_LIMIT },
+        'ios-simulator',
+      );
+      console.log('[KEK_BENCH]', JSON.stringify(result));
+      setBench({ kind: 'done', result });
+    } catch (e) {
+      setBench({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={theme.color.background} />
       <View style={styles.container}>
         <Text style={styles.title}>Kinetica</Text>
-        <Text style={styles.subtitle}>Phase 1 — bridge smoke test</Text>
+        <Text style={styles.subtitle}>Phase 2 — crypto bench</Text>
+
+        <Text style={styles.statusText}>crypto: {boot.kind}</Text>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Request HealthKit authorization"
-          onPress={onPress}
+          onPress={onAuthHealthKit}
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
         >
           <Text style={styles.buttonLabel}>
             {auth.kind === 'pending' ? 'Requesting…' : 'Authorize HealthKit'}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Run KEK benchmark"
+          onPress={onRunBenchmark}
+          disabled={boot.kind !== 'ready' || bench.kind === 'running'}
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonPressed,
+            boot.kind !== 'ready' && styles.buttonDisabled,
+          ]}
+        >
+          <Text style={styles.buttonLabel}>
+            {bench.kind === 'running' ? 'Running…' : 'Run KEK benchmark'}
           </Text>
         </Pressable>
 
@@ -55,6 +119,21 @@ export default function App(): JSX.Element {
           )}
           {auth.kind === 'error' && (
             <Text style={styles.statusError}>Error: {auth.message}</Text>
+          )}
+          {bench.kind === 'done' && (
+            <Text style={styles.statusText}>
+              KEK median {bench.result.median_ms.toFixed(1)}ms / p95{' '}
+              {bench.result.p95_ms.toFixed(1)}ms (n={bench.result.iterations}, t=
+              {bench.result.params.opsLimit}, m=
+              {Math.round(bench.result.params.memLimit / (1024 * 1024))}MiB,{' '}
+              {bench.result.provenance})
+            </Text>
+          )}
+          {bench.kind === 'error' && (
+            <Text style={styles.statusError}>Bench error: {bench.message}</Text>
+          )}
+          {boot.kind === 'error' && (
+            <Text style={styles.statusError}>Crypto boot: {boot.message}</Text>
           )}
         </View>
       </View>
@@ -71,7 +150,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: theme.space.lg,
     justifyContent: 'center',
-    gap: theme.space.lg,
+    gap: theme.space.md,
   },
   title: {
     color: theme.color.text,
@@ -93,6 +172,9 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.8,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   buttonLabel: {
     color: theme.color.background,

@@ -43,3 +43,4 @@ export {
 } from './kek.ts';
 export { deriveX25519FromMaster, generateMasterKey } from './master.ts';
 export { runArgon2idBenchmark, type BenchmarkResult } from './benchmark.ts';
+export { initAppCrypto } from './setup.ts';
