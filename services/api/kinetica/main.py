@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from kinetica.config import get_settings
 from kinetica.logging import configure_logging, get_logger
+from kinetica.routes.auth import router as auth_router
 from kinetica.routes.health import router as health_router
 
 
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(health_router)
+    app.include_router(auth_router)
     return app
 
 
