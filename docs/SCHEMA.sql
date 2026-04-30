@@ -221,6 +221,22 @@ CREATE TABLE workout_sessions (
 
 CREATE INDEX idx_sessions_user_date ON workout_sessions (user_id, started_at DESC) WHERE deleted_at IS NULL;
 
+CREATE TABLE auth_challenges (
+	id UUID DEFAULT gen_random_uuid() NOT NULL, 
+	user_id UUID NOT NULL, 
+	device_id UUID NOT NULL, 
+	nonce BYTEA NOT NULL, 
+	expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+	CONSTRAINT pk_auth_challenges PRIMARY KEY (id), 
+	CONSTRAINT uq_auth_challenges_user_id_nonce UNIQUE (user_id, nonce), 
+	CONSTRAINT ck_auth_challenges_nonce_len CHECK (length(nonce) = 32), 
+	CONSTRAINT fk_auth_challenges_user_id_users FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+	CONSTRAINT fk_auth_challenges_device_id_user_devices FOREIGN KEY(device_id) REFERENCES user_devices (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_auth_challenges_expires ON auth_challenges (expires_at);
+
 CREATE TABLE exercise_blocks (
 	id UUID DEFAULT gen_random_uuid() NOT NULL, 
 	session_id UUID NOT NULL, 

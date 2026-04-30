@@ -8,7 +8,7 @@ Importing every model module here is what populates `Base.metadata` for
 alembic — do not lazy-load.
 """
 
-from kinetica.models.auth import ApplicationPepper, DpopJtiSeen
+from kinetica.models.auth import ApplicationPepper, AuthChallenge, DpopJtiSeen
 from kinetica.models.base import Base
 from kinetica.models.biometrics import AmbientDaily, ReadinessScore, SleepSession
 from kinetica.models.integrations import HealthProviderLink
@@ -25,6 +25,7 @@ from kinetica.models.workouts import (
 __all__ = [
     "AmbientDaily",
     "ApplicationPepper",
+    "AuthChallenge",
     "Base",
     "BlockExercise",
     "DpopJtiSeen",
