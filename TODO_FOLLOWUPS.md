@@ -14,18 +14,36 @@ clear gate so we don't accumulate ambiguous "later" debt.
 
 ## Before public beta (Phase 6 audit)
 
-- **Constant-time registration response.** The 409 (duplicate-email)
-  path is faster than 201 (success) — 201 inserts a device row and
-  issues tokens, 409 short-circuits on the unique-constraint flush.
-  An attacker who can sign a request can probe email-existence by
-  measuring response time across A (fresh) vs B (duplicate).
-  Mitigation options when this lands:
-  1. After the duplicate is detected, perform an equivalent amount
-     of dummy work (one fixed-cost INSERT + one fixed-cost token
-     issuance, discarded) so 409 takes the same wall time as 201.
-  2. Add a sleep-to-floor: clamp every register response to ≥ N ms
-     where N is the 95th percentile of the success path. Crude but
+- **Constant-time auth response.** Both /auth/register and the login
+  endpoints have wall-time imbalances across response paths that can
+  be probed for email/device existence:
+
+  Registration — 409 (duplicate-email) skips the device insert + token
+  issuance and is faster than 201 (success). An attacker who can sign
+  a request times A (fresh) vs B (duplicate) and learns whether an
+  email is already registered.
+
+  Login — every failure path returns 401, but they take different
+  amounts of time:
+    - unknown email:        pepper-read + user-not-found (fastest)
+    - unknown device:       pepper-read + user-found + device-not-found
+    - revoked device:       pepper-read + user-found + device-revoked
+    - bad signature:        full pipeline + DELETE + verify-fails
+    - expired nonce:        full pipeline + DELETE + expiry check
+    - replayed nonce:       pepper-read + user-found + DELETE-misses
+
+  An attacker who can iterate emails times the response and learns
+  which dimension failed.
+
+  Mitigation options for both endpoints:
+  1. After early-exit, perform equivalent dummy work (one fixed-cost
+     SELECT + one fixed-cost INSERT + one fixed-cost token issuance,
+     discarded) so every path lands within a tight window of the
+     slowest (success) path.
+  2. Add a sleep-to-floor: clamp every auth response to ≥ N ms where
+     N is the 95th percentile of the slowest success path. Crude but
      resilient to future code changes that move the imbalance.
+
   We will likely combine both. Tracked here so it's not lost.
 
 - **Healthz distinguishes pepper-not-seeded from generic unhealthy.**
