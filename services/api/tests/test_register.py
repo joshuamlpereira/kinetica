@@ -145,7 +145,7 @@ async def test_register_201_creates_user_and_device(
     assert device.revoked_at is None
 
 
-async def test_access_token_carries_cnf_jwk_for_device_pubkey(
+async def test_access_token_carries_cnf_jkt_for_device_pubkey(
     client: AsyncClient,
     primary_pepper: bytes,
     cleanup_users: None,
@@ -159,12 +159,13 @@ async def test_access_token_carries_cnf_jwk_for_device_pubkey(
     decoded = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     assert decoded["sub"] == response.json()["user_id"]
     assert decoded["did"] == response.json()["device_id"]
-    cnf_jwk = decoded["cnf"]["jwk"]
-    assert cnf_jwk["kty"] == "OKP"
-    assert cnf_jwk["crv"] == "Ed25519"
-    # base64url-no-padding of the device pubkey.
-    expected_x = base64.urlsafe_b64encode(sk.verify_key.encode()).rstrip(b"=").decode("ascii")
-    assert cnf_jwk["x"] == expected_x
+    # Per RFC 9449 the cnf claim carries `jkt` — the JWK Thumbprint
+    # (RFC 7638) of the device pubkey, not the full JWK. The DPoP
+    # middleware reads the JWK out of the proof header on each
+    # incoming request and verifies it thumbprints to the same value.
+    from kinetica.auth.tokens import device_pubkey_thumbprint
+
+    assert decoded["cnf"] == {"jkt": device_pubkey_thumbprint(sk.verify_key.encode())}
 
 
 async def test_register_400_when_bootstrap_signature_fails(

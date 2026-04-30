@@ -144,19 +144,16 @@ async def test_login_happy_path_returns_tokens_bound_to_device_pubkey(
     user_id = uuid.UUID(body["user_id"])
     device_id = uuid.UUID(body["device_id"])
 
-    # Access token's cnf.jwk binds to the same device pubkey we logged
-    # in with — i.e. DPoP verification on subsequent requests can use
-    # `cnf` to require the same Ed25519 key.
+    # Access token's cnf.jkt is the JWK Thumbprint (RFC 7638) of the
+    # device pubkey, not the full JWK. The DPoP middleware verifies
+    # that the proof header's JWK thumbprints to the same value.
     settings = get_settings()
     decoded = jwt.decode(body["access_token"], settings.jwt_secret, algorithms=["HS256"])
     assert decoded["sub"] == str(user_id)
     assert decoded["did"] == str(device_id)
-    expected_x = base64.urlsafe_b64encode(device_pubkey).rstrip(b"=").decode("ascii")
-    assert decoded["cnf"]["jwk"] == {
-        "kty": "OKP",
-        "crv": "Ed25519",
-        "x": expected_x,
-    }
+    from kinetica.auth.tokens import device_pubkey_thumbprint
+
+    assert decoded["cnf"] == {"jkt": device_pubkey_thumbprint(device_pubkey)}
 
 
 async def test_login_with_unknown_email_returns_401(
