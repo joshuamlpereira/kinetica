@@ -2,13 +2,16 @@
 
 Compose order, all in one transaction:
 
-1. Resolve the application primary pepper from `application_pepper`.
+1. Verify `bootstrap_signature` against the device pubkey, over the
+   SHA-256 of the canonical-JSON form of the rest of the body — this
+   is local, no DB. We intentionally fail garbage requests before
+   touching Postgres so an attacker without a valid signature cannot
+   probe DB / pepper state by timing the response. Client-side
+   counterpart at `apps/mobile/src/auth/canonical.ts`.
+2. Resolve the application primary pepper from `application_pepper`.
    If no row is present, registration is impossible — it's an
    operational error (the table is seeded out-of-band before traffic
    is allowed).
-2. Verify `bootstrap_signature` against the device pubkey, over the
-   SHA-256 of the canonical-JSON form of the rest of the body. The
-   client-side counterpart is in `apps/mobile/src/auth/canonical.ts`.
 3. Compute `email_hash` under the primary pepper.
 4. Insert the `users` row (rejecting duplicates via the unique
    constraint on `email_hash`).
@@ -18,6 +21,13 @@ Compose order, all in one transaction:
 
 Any constraint violation (duplicate email, byte-length CHECK miss)
 surfaces as a 409 / 422 to the caller.
+
+KNOWN GAP — duplicate-email response timing. The 409 path skips the
+device-row insert + token issuance and so finishes faster than a
+fresh-email 201 with the same valid signature. A timing-capable
+attacker who can sign a request can use this to probe email-existence.
+Tracked as a follow-up — see TODO_FOLLOWUPS.md "Constant-time
+registration response". Not blocking on the login flow.
 """
 
 from __future__ import annotations
@@ -69,11 +79,17 @@ async def register_user(
     session: AsyncSession,
     settings: Settings,
 ) -> RegistrationResult:
-    primary_pepper = await _read_primary_pepper(session)
-
+    # 1. Local-only check first — never touch the DB on a request whose
+    #    bootstrap signature doesn't verify against the supplied device
+    #    pubkey. This means an attacker without a valid signature cannot
+    #    probe pepper state, schema state, or DB connectivity by timing.
     if not _verify_bootstrap_signature(request):
         raise InvalidBootstrapSignature("bootstrap_signature does not verify")
 
+    # 2. Pepper read (DB lookup #1).
+    primary_pepper = await _read_primary_pepper(session)
+
+    # 3. Compute the lookup key.
     email_hash = compute_email_hash(request.email, primary_pepper)
 
     user = User(

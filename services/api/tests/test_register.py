@@ -20,7 +20,7 @@ import jwt
 import pytest
 from httpx import AsyncClient
 from nacl.signing import SigningKey
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -221,3 +221,106 @@ async def test_register_503_when_pepper_table_empty(
         # Restore so subsequent tests in this file can rely on the fixture.
         db_session.add(ApplicationPepper(slot="primary", pepper=secrets.token_bytes(32)))
         await db_session.commit()
+
+
+async def test_invalid_signature_takes_precedence_over_missing_pepper(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    cleanup_users: None,
+) -> None:
+    """The 'sig verify before any DB call' invariant.
+
+    With both a bogus signature AND no pepper, the response MUST be 400
+    (signature failure) — not 503 (pepper missing). If the order ever
+    flips back to pepper-first, this test fails because the route
+    would have to read the pepper before checking the signature, which
+    means a no-pepper-but-correct-signature request leaks 503 to an
+    attacker who hasn't even proven device-key possession.
+    """
+    await db_session.execute(delete(ApplicationPepper))
+    await db_session.commit()
+    try:
+        payload, _sk = _build_payload(email="grace@example.com")
+        payload["bootstrap_signature"] = _b64(secrets.token_bytes(64))
+        response = await client.post("/auth/register", json=payload)
+        assert response.status_code == 400, (
+            f"expected 400 (sig before pepper); got {response.status_code} with {response.json()}"
+        )
+    finally:
+        db_session.add(ApplicationPepper(slot="primary", pepper=secrets.token_bytes(32)))
+        await db_session.commit()
+
+
+async def test_email_never_persisted_logged_or_returned(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    primary_pepper: bytes,
+    cleanup_users: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The user's review item: don't trust 'no plaintext column exists'.
+
+    Scan every text / varchar / bytea column in every public table for
+    the sentinel email after a successful registration. Also inspect
+    the response body and captured stdout (where structlog writes) so
+    a future audit-log addition or structured error can't leak the
+    email by accident.
+
+    The sentinel uses a UUID to make the substring unmistakable —
+    nothing else in the schema or logs would coincidentally contain
+    `leak-canary-<uuid>@example.com`.
+    """
+    sentinel = f"leak-canary-{uuid.uuid4()}@example.com"
+
+    payload, _sk = _build_payload(email=sentinel)
+    response = await client.post("/auth/register", json=payload)
+    assert response.status_code == 201, response.text
+
+    # 1. Response body MUST NOT echo the email.
+    assert sentinel.encode("utf-8") not in response.content
+    assert sentinel not in response.text
+
+    # 2. Captured stdout / stderr MUST NOT contain the email.
+    captured = capsys.readouterr()
+    assert sentinel not in captured.out, "email leaked to stdout (structlog)"
+    assert sentinel not in captured.err, "email leaked to stderr"
+
+    # 3. Every text / varchar / bytea column in every public table MUST
+    #    NOT contain the email (substring match — safe because of UUID).
+    text_cols = (
+        await db_session.execute(
+            text(
+                """
+                SELECT table_name, column_name, data_type
+                  FROM information_schema.columns
+                 WHERE table_schema = 'public'
+                   AND data_type IN ('text', 'character varying', 'bytea')
+                """
+            )
+        )
+    ).all()
+    assert text_cols, "expected to find text/bytea columns to scan"
+    needle_text = sentinel
+    needle_bytes = sentinel.encode("utf-8")
+    for table_name, column_name, data_type in text_cols:
+        # `table_name` / `column_name` are read from information_schema —
+        # Postgres-supplied identifiers, not user input. The S608 hint
+        # doesn't apply, but we still quote with `"` to be conservative.
+        if data_type == "bytea":
+            # asyncpg binds Python `bytes` as `bytea` natively — the
+            # `::bytea` cast trips its parameter parser, so we pass the
+            # bytes via a CAST() expression instead.
+            sql = (
+                f'SELECT 1 FROM "{table_name}" '  # noqa: S608
+                f'WHERE position(CAST(:needle AS bytea) in "{column_name}") > 0 '
+                f"LIMIT 1"
+            )
+            params: dict[str, object] = {"needle": needle_bytes}
+        else:
+            sql = (
+                f'SELECT 1 FROM "{table_name}" '  # noqa: S608
+                f'WHERE "{column_name}" LIKE :needle LIMIT 1'
+            )
+            params = {"needle": f"%{needle_text}%"}
+        hit = (await db_session.execute(text(sql), params)).first()
+        assert hit is None, f"sentinel email leaked into {table_name}.{column_name} ({data_type})"
