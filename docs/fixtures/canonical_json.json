@@ -1,0 +1,59 @@
+{
+  "_comment": "Frozen canonical-JSON test vectors. The TS client and Python server BOTH parse this file and assert byte-identical output for each `input`. Bytes that diverge between sides break `bootstrap_signature` for real users — most likely on non-ASCII device names. Add a vector here when you add a feature that exercises a new shape (escape, length, character class).",
+  "_format": {
+    "input": "the dict the canonicaliser sees (string keys → string values)",
+    "canonical_hex": "lowercase hex of the canonical UTF-8 bytes",
+    "sha256_hex": "lowercase hex of SHA-256(canonical_bytes)"
+  },
+  "vectors": [
+    {
+      "name": "empty_object",
+      "input": {},
+      "canonical_hex": "7b7d",
+      "sha256_hex": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "single_pair",
+      "input": { "a": "1" },
+      "canonical_hex": "7b2261223a2231227d",
+      "sha256_hex": "9afeb0f2b203f254312ec8ded441d0318b7c34c57f8695ede42d2215a30c0960"
+    },
+    {
+      "name": "keys_sorted_lexicographically",
+      "input": { "b": "2", "a": "1" },
+      "canonical_hex": "7b2261223a2231222c2262223a2232227d",
+      "sha256_hex": "21f76dfbfe6dfe21f762080ef484112cf2952974cef30741fd1931e1c6d92112"
+    },
+    {
+      "name": "ascii_typical_payload_subset",
+      "input": {
+        "email": "user@example.com",
+        "device_name": "iPhone 15 Pro"
+      },
+      "canonical_hex": "7b226465766963655f6e616d65223a226950686f6e652031352050726f222c22656d61696c223a2275736572406578616d706c652e636f6d227d",
+      "sha256_hex": "d2531ad5bc869fcd535b13c469070647f5ad45d785c6889352e0b7a8323c2282"
+    },
+    {
+      "name": "escapes_and_non_ascii_are_byte_identical",
+      "input": {
+        "x": "has \"quotes\" and \\backslashes",
+        "y": "ünîçødé"
+      },
+      "canonical_hex": "7b2278223a22686173205c2271756f7465735c2220616e64205c5c6261636b736c6173686573222c2279223a22c3bc6ec3aec3a7c3b864c3a9227d",
+      "sha256_hex": "6ee94d5eb0334f7efde52bd8fc369e1b8ab7111580656cd3be8f30ad6526e906"
+    },
+    {
+      "name": "full_register_payload_shape",
+      "input": {
+        "device_name": "iPhone 15 Pro",
+        "device_pubkey": "k6hZ7QPMXg+MJqB3kz6KOeJ8EAlBI4yTcKSp4o9JJSY=",
+        "email": "alice@kinetica.app",
+        "encryption_pubkey": "8L3vXPq8FhxrGqSb0YOj2k9RPg2K2hZUVmDYuKZ0SCY=",
+        "password_salt": "AAECAwQFBgcICQoLDA0ODw==",
+        "wrapped_master_key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc="
+      },
+      "canonical_hex": "7b226465766963655f6e616d65223a226950686f6e652031352050726f222c226465766963655f7075626b6579223a226b36685a3751504d58672b4d4a7142336b7a364b4f654a3845416c4249347954634b5370346f394a4a53593d222c22656d61696c223a22616c696365406b696e65746963612e617070222c22656e6372797074696f6e5f7075626b6579223a22384c337658507138466878724771536230594f6a326b39525067324b32685a55566d4459754b5a305343593d222c2270617373776f72645f73616c74223a2241414543417751464267634943516f4c4441304f44773d3d222c22777261707065645f6d61737465725f6b6579223a2241414543417751464267634943516f4c4441304f4478415245684d554652595847426b6147787764486838674953496a4a43556d4a7967704b6973734c5334764d4445794d7a51314e6a633d227d",
+      "sha256_hex": "bbb19dc184c6e9da6f192915c4ed38c3ba46589799d606db39685e447cbc7f50"
+    }
+  ]
+}
