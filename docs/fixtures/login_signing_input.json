@@ -1,0 +1,39 @@
+{
+  "_comment": "Frozen test vectors for the login signing-input format. The Python server (and the TS client when it lands) BOTH parse this file and assert that `nonce_bytes || expires_at_iso_utf8 || device_pubkey_bytes` produces exactly the documented `signing_input_hex`. Drift in either direction — wrong concatenation order, wrong ISO format (microseconds, +00:00 vs Z, padding), wrong text encoding — fails the fixture and surfaces immediately, instead of breaking signatures silently in production.",
+  "_format": {
+    "nonce_hex": "lowercase hex of the 32-byte nonce",
+    "expires_at_iso": "the exact ASCII string the server emits and signs over (`%Y-%m-%dT%H:%M:%SZ`)",
+    "device_pubkey_hex": "lowercase hex of the 32-byte Ed25519 public key",
+    "signing_input_hex": "lowercase hex of `nonce_bytes || expires_at_iso_utf8 || device_pubkey_bytes`"
+  },
+  "vectors": [
+    {
+      "name": "all_zeros_midnight",
+      "nonce_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expires_at_iso": "2026-04-29T00:00:00Z",
+      "device_pubkey_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "signing_input_hex": "0000000000000000000000000000000000000000000000000000000000000000323032362d30342d32395430303a30303a30305a0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "ascending_bytes_noon",
+      "nonce_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "expires_at_iso": "2026-04-29T12:00:00Z",
+      "device_pubkey_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "signing_input_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f323032362d30342d32395431323a30303a30305a202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+    },
+    {
+      "name": "all_ones_year_end",
+      "nonce_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expires_at_iso": "2026-12-31T23:59:59Z",
+      "device_pubkey_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "signing_input_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff323032362d31322d33315432333a35393a35395affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "realistic_payload",
+      "nonce_hex": "3b0a8c7d4e5f6a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f7",
+      "expires_at_iso": "2026-04-29T18:35:12Z",
+      "device_pubkey_hex": "93a859ed03cc5e0f8c26a077933e8a39e27c100941238c937094a9e28f494925",
+      "signing_input_hex": "3b0a8c7d4e5f6a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f7323032362d30342d32395431383a33353a31325a93a859ed03cc5e0f8c26a077933e8a39e27c100941238c937094a9e28f494925"
+    }
+  ]
+}
